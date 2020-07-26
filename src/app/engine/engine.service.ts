@@ -7,9 +7,11 @@ export class EngineService implements OnDestroy {
   private renderer: THREE.WebGLRenderer;
   private camera: THREE.PerspectiveCamera;
   private scene: THREE.Scene;
-  private light: THREE.AmbientLight;
+  private light: THREE.DirectionalLight;
 
-  private cube: THREE.Mesh;
+  private sphere: THREE.Mesh;
+  private stars: THREE.Mesh;
+  private clouds: THREE.Mesh;
 
   private frameId: number = null;
 
@@ -36,23 +38,51 @@ export class EngineService implements OnDestroy {
     this.scene = new THREE.Scene();
 
     this.camera = new THREE.PerspectiveCamera(
-      75, window.innerWidth / window.innerHeight, 0.1, 1000
+      45, window.innerWidth / window.innerHeight, 0.01, 1000
     );
-    this.camera.position.z = 5;
+    this.camera.position.z = 1.5;
     this.scene.add(this.camera);
 
     // soft white light
-    this.light = new THREE.AmbientLight( 0x404040 );
-    this.light.position.z = 10;
-    this.scene.add(this.light);
+      this.scene.add(new THREE.AmbientLight(0x333333));
 
-    const geometry = new THREE.BoxGeometry(1, 1, 1);
-    const material = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
+    this.light = new THREE.DirectionalLight(0xffffff, 1);
+    this.light.position.set(5,3,5);
+    this.scene.add(this.light);
+    var radius   = 0.5,
+    segments = 32,
+    rotation = 6;  
+
+     this.sphere = this.createSphere(radius, segments);
+     this.sphere.rotation.y = rotation; 
+     this.scene.add(this.sphere);
+     this.clouds = this.createClouds(radius, segments);
+     this.clouds.rotation.y = rotation;
+     this.scene.add(this.clouds);
+
+     this.stars = this.createStars(90, 64);
+      this.scene.add(this.stars);
+
+    /*const geometry = new THREE.SphereGeometry(0.5, 32, 32);
+    const material = new THREE.MeshPhongMaterial({ color: 0x00ff00 });
     this.cube = new THREE.Mesh( geometry, material );
-    this.scene.add(this.cube);
+    this.scene.add(this.cube);*/
 
   }
 
+    public render(): void {
+    this.frameId = requestAnimationFrame(() => {
+      this.render();
+    });
+    this.sphere.rotation.y += 0.0005;
+    this.clouds.rotation.y += 0.0005;  
+
+    //this.cube.rotation.x += 0.01;
+   // this.cube.rotation.y += 0.01;
+    this.renderer.render(this.scene, this.camera);
+  }
+
+  
   public animate(): void {
     // We have to run this outside angular zones,
     // because it could trigger heavy changeDetection cycles.
@@ -71,15 +101,6 @@ export class EngineService implements OnDestroy {
     });
   }
 
-  public render(): void {
-    this.frameId = requestAnimationFrame(() => {
-      this.render();
-    });
-
-    this.cube.rotation.x += 0.01;
-    this.cube.rotation.y += 0.01;
-    this.renderer.render(this.scene, this.camera);
-  }
 
   public resize(): void {
     const width = window.innerWidth;
@@ -90,4 +111,39 @@ export class EngineService implements OnDestroy {
 
     this.renderer.setSize( width, height );
   }
+
+    createSphere(radius, segments) {
+    return new THREE.Mesh(
+      new THREE.SphereGeometry(radius, segments, segments),
+      new THREE.MeshPhongMaterial({
+        map:         THREE.ImageUtils.loadTexture('assets/images/2_no_clouds_4k.jpg'),
+        bumpMap:     THREE.ImageUtils.loadTexture('assets/images/elev_bump_4k.jpg'),
+        bumpScale:   0.005,
+        specularMap: THREE.ImageUtils.loadTexture('assets/images/water_4k.png'),
+        specular:    new THREE.Color('grey')                
+      })
+    );
+  }
+
+  createClouds(radius, segments) {
+    return new THREE.Mesh(
+      new THREE.SphereGeometry(radius + 0.003, segments, segments),      
+      new THREE.MeshPhongMaterial({
+        map:         THREE.ImageUtils.loadTexture('assets/images/fair_clouds_4k.png'),
+        transparent: true
+      })
+    );    
+  }
+
+  createStars(radius, segments) {
+    return new THREE.Mesh(
+      new THREE.SphereGeometry(radius, segments, segments), 
+      new THREE.MeshBasicMaterial({
+        map:  THREE.ImageUtils.loadTexture('assets/images/galaxy_starfield.png'), 
+        side: THREE.BackSide
+      })
+    );
+  }
+
+
 }
